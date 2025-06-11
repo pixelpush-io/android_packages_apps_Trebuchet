@@ -163,7 +163,7 @@ public class OverlayCallbackImpl
 
     private LauncherClient.ClientOptions getClientOptions(SharedPreferences prefs) {
         return new LauncherClient.ClientOptions(
-                prefs.getBoolean(KEY_ENABLE_MINUS_ONE, true),
+                prefs.getBoolean(KEY_ENABLE_MINUS_ONE, false),
                 true, /* enableHotword */
                 true /* enablePrewarming */
         );
