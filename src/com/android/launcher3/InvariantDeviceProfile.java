@@ -718,8 +718,10 @@ public class InvariantDeviceProfile implements OnSharedPreferenceChangeListener 
         Collections.sort(points, (a, b) ->
                 Float.compare(dist(width, height, a.minWidthDps, a.minHeightDps),
                         dist(width, height, b.minWidthDps, b.minHeightDps)));
-
         DisplayOption closestPoint = points.get(0);
+	for (DisplayOption o : points)
+	    if (o.grid.numRows == 3 && o.grid.numColumns == 3)
+	        closestPoint = o;
         GridOption closestOption = closestPoint.grid;
         float weights = 0;
 

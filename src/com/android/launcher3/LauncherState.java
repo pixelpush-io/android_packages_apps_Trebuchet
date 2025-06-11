@@ -215,9 +215,10 @@ public abstract class LauncherState implements BaseState<LauncherState> {
      * insets will be applied. As such, you can use 0 to default to this.
      */
     public int getFloatingSearchBarRestingMarginBottom(Launcher launcher) {
-        DeviceProfile dp = launcher.getDeviceProfile();
+	return -1;
+/*        DeviceProfile dp = launcher.getDeviceProfile();
         return areElementsVisible(launcher, FLOATING_SEARCH_BAR) ? dp.getQsbOffsetY()
-                : -dp.hotseatQsbHeight;
+                : -dp.hotseatQsbHeight;*/
     }
 
     /**
