@@ -405,6 +405,9 @@ android_app {
 android_app {
     name: "TrebuchetQuickStep",
 
+    dex_preopt: {
+        enabled: false,
+    },
     static_libs: ["Launcher3QuickStepLib"],
     optimize: {
         enabled: false,
