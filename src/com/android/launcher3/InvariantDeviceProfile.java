@@ -721,7 +721,7 @@ public class InvariantDeviceProfile implements OnSharedPreferenceChangeListener 
         DisplayOption closestPoint = points.get(0);
 	for (DisplayOption o : points)
 	    if (o.grid.numRows == 3 && o.grid.numColumns == 3)
-	        closestPoint = o;
+		return o;
         GridOption closestOption = closestPoint.grid;
         float weights = 0;
 
