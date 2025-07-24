@@ -20,6 +20,8 @@ import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.accessibility.LauncherAccessibilityDelegate.getSupportedActions;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.KeyboardShortcutGroup;
@@ -111,6 +113,19 @@ public class KeyboardShortcutsDelegate {
      * @see android.view.KeyEvent
      */
     public Boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (event.hasNoModifiers() && event.getRepeatCount() == 0
+                && mLauncher.isInState(NORMAL)) {
+            int unicode = event.getUnicodeChar();
+            if (unicode > 0) {
+                char c = (char) unicode;
+                if (Character.isDigit(c) || c == '*' || c == '#') {
+                    Intent intent = new Intent(Intent.ACTION_DIAL,
+                            Uri.parse("tel:" + Uri.encode(String.valueOf(c))));
+                    mLauncher.startActivitySafely(null, intent, null);
+                    return true;
+                }
+            }
+        }
         // Ignore escape if pressed in conjunction with any modifier keys.
         if (keyCode == KeyEvent.KEYCODE_ESCAPE && event.hasNoModifiers()) {
             AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mLauncher);
