@@ -361,6 +361,17 @@ public class SystemUiProxy implements ISystemUiProxy, NavHandle {
     }
 
     @Override
+    public void onOverviewHidden() {
+        if (mSystemUiProxy != null) {
+            try {
+                mSystemUiProxy.onOverviewHidden();
+            } catch (RemoteException e) {
+                Log.w("Dumbdroid", "Failed call onOverviewHidden", e);
+            }
+        }
+    }
+
+    @Override
     public void onOverviewShown(boolean fromHome) {
         onOverviewShown(fromHome, TAG);
     }

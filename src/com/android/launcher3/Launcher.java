@@ -588,6 +588,23 @@ public class Launcher extends StatefulActivity<LauncherState>
             RuleController.getInstance(this).setRules(
                     RuleController.parseRules(this, R.xml.split_configuration));
         }
+
+       getStateManager().addStateListener(new StateManager.StateListener<LauncherState>() {
+            private boolean lastWasOverview = getStateManager().getState() == LauncherState.OVERVIEW;
+
+            @Override
+            public void onStateTransitionComplete(LauncherState finalState) {
+                Log.i("Dumbdroid", "End transition to " + finalState + ", last was" + lastWasOverview);
+                boolean isOverview = finalState == LauncherState.OVERVIEW;
+                try {
+                    if (isOverview)
+                        com.android.quickstep.SystemUiProxy.INSTANCE.get(Launcher.this).onOverviewShown(false);
+                    else if (lastWasOverview)
+                        com.android.quickstep.SystemUiProxy.INSTANCE.get(Launcher.this).onOverviewHidden();
+                } catch (Throwable ignore) { }
+                lastWasOverview = isOverview;
+            }
+       });
     }
 
     protected ModelCallbacks createModelCallbacks() {
