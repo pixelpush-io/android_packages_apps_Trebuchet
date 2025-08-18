@@ -145,6 +145,7 @@ import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver.OnPreDrawListener;
 import android.view.WindowInsets;
 import android.view.WindowInsetsAnimation;
@@ -162,6 +163,7 @@ import androidx.annotation.StringRes;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 import androidx.window.embedding.RuleController;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.launcher3.DropTarget.DragObject;
 import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
@@ -590,12 +592,12 @@ public class Launcher extends StatefulActivity<LauncherState>
         }
 
        getStateManager().addStateListener(new StateManager.StateListener<LauncherState>() {
-            private boolean lastWasOverview = getStateManager().getState() == LauncherState.OVERVIEW;
+            private boolean lastWasOverview = getStateManager().getState() != LauncherState.NORMAL;
 
             @Override
             public void onStateTransitionComplete(LauncherState finalState) {
                 Log.i("Dumbdroid", "End transition to " + finalState + ", last was" + lastWasOverview);
-                boolean isOverview = finalState == LauncherState.OVERVIEW;
+                boolean isOverview = finalState != LauncherState.NORMAL;
                 try {
                     if (isOverview)
                         com.android.quickstep.SystemUiProxy.INSTANCE.get(Launcher.this).onOverviewShown(false);
@@ -2685,6 +2687,21 @@ public class Launcher extends StatefulActivity<LauncherState>
         return result != null ? result : super.onKeyShortcut(keyCode, event);
     }
 
+    private static boolean isDescendantOf(View child, View ancestor) {
+        if (child == null || ancestor == null) {
+            return false;
+        }
+        ViewParent parent = child.getParent();
+        while (parent instanceof View) {
+            if (parent == ancestor) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+
     /**
      * Logic delegated to {@Link KeyboardShortcutsDelegate}.
      * @param keyCode The value in event.getKeyCode().
@@ -2693,7 +2710,46 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         Boolean result = mKeyboardShortcutsDelegate.onKeyDown(keyCode, event);
-        return result != null ? result : super.onKeyDown(keyCode, event);
+        if (result != null) {
+            return result;
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && isInState(LauncherState.NORMAL)) {
+            View focused = getCurrentFocus();
+            if (focused != null && isDescendantOf(focused, getHotseat())) {
+                getStateManager().goToState(LauncherState.ALL_APPS);
+                final AllAppsRecyclerView rv = mAppsView.getActiveRecyclerView();
+                rv.post(() -> {
+                    RecyclerView.ViewHolder vh =
+                            rv.findViewHolderForAdapterPosition(0);
+                    if (vh != null) {
+                        vh.itemView.requestFocus();
+                    }
+                });
+                return true;
+            }
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP
+                && isInState(LauncherState.ALL_APPS)) {
+            AllAppsRecyclerView rv = mAppsView.getActiveRecyclerView();
+            View focused = getCurrentFocus();
+            if (focused != null && isDescendantOf(focused, rv)) {
+                int pos = rv.getChildAdapterPosition(focused);
+                int cols = getDeviceProfile().numShownAllAppsColumns;
+                if (pos >= 0 && pos < cols) {
+                    getStateManager().goToState(LauncherState.NORMAL);
+                    Hotseat hotseat = getHotseat();
+                    hotseat.post(() -> {
+                        View hotseatChild =
+                                hotseat.getShortcutsAndWidgets().getChildAt(0);
+                        if (hotseatChild != null) {
+                            hotseatChild.requestFocus();
+                        }
+                    });
+                    return true;
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     /**
