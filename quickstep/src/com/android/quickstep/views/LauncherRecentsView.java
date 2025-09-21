@@ -33,6 +33,7 @@ import android.content.Context;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 
@@ -181,6 +182,10 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             runActionOnRemoteHandles(remoteTargetHandle ->
                     remoteTargetHandle.getTaskViewSimulator().setDrawsBelowRecents(true));
         }
+
+        if (finalState == OVERVIEW) {
+            focusMostRecentTaskForDpadIfNeeded();
+        }
     }
 
     @Override
@@ -199,6 +204,41 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         boolean result = super.onTouchEvent(ev);
         // Do not let touch escape to siblings below this view.
         return result || mActivity.getStateManager().getState().overviewUi;
+    }
+
+    private void focusMostRecentTaskForDpadIfNeeded() {
+        if (isInTouchMode() || isKeyboardTaskFocusPending()) {
+            return;
+        }
+
+        View currentFocus = findFocus();
+        if (currentFocus instanceof TaskView) {
+            return;
+        }
+
+        post(() -> {
+            if (isInTouchMode() || isKeyboardTaskFocusPending()) {
+                return;
+            }
+
+            View focused = findFocus();
+            if (focused instanceof TaskView) {
+                return;
+            }
+
+            TaskView mostRecent = getCurrentPageTaskView();
+            if (mostRecent == null) {
+                mostRecent = getRunningTaskView();
+            }
+            if (mostRecent == null) {
+                mostRecent = getTaskViewNearestToCenterOfScreen();
+            }
+
+            if (mostRecent != null && mostRecent.isAttachedToWindow()) {
+                mostRecent.requestFocus();
+                mostRecent.requestAccessibilityFocus();
+            }
+        });
     }
 
     @Override
