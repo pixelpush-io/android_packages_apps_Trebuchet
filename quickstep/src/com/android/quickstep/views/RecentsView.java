@@ -4149,7 +4149,7 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
             return false;
         }
         final int newPageUnbound = getNextPageInternal(delta, direction, cycle);
-        if (!cycle && (newPageUnbound < 0 || newPageUnbound > pageCount)) {
+        if (!cycle && (newPageUnbound < 0 || newPageUnbound >= pageCount)) {
             return false;
         }
         snapToPage((newPageUnbound + pageCount) % pageCount);
@@ -4237,7 +4237,7 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
                 return snapToPageRelative(event.isShiftPressed() ? -1 : 1, true /* cycle */,
                         DIRECTION_TAB);
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                return snapToPageRelative(mIsRtl ? -1 : 1, true /* cycle */, DIRECTION_RIGHT);
+                return snapToPageRelative(mIsRtl ? -1 : 1, false, DIRECTION_RIGHT);
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 return snapToPageRelative(mIsRtl ? 1 : -1, true /* cycle */, DIRECTION_LEFT);
             case KeyEvent.KEYCODE_DPAD_UP:
