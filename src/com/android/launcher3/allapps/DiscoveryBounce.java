@@ -28,6 +28,7 @@ import android.view.View;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
@@ -40,6 +41,8 @@ import com.android.launcher3.util.OnboardingPrefs;
  */
 public class DiscoveryBounce extends AbstractFloatingView {
 
+    // Disable the initial hotseat bounce animation.
+    private static final boolean HOME_BOUNCE_ENABLED = false;
     private static final long DELAY_MS = 450;
 
     private final Launcher mLauncher;
@@ -119,7 +122,7 @@ public class DiscoveryBounce extends AbstractFloatingView {
     }
 
     public static void showForHomeIfNeeded(Launcher launcher) {
-        showForHomeIfNeeded(launcher, true);
+	LauncherPrefs.get(launcher).put(HOME_BOUNCE_SEEN, true);
     }
 
     private static void showForHomeIfNeeded(Launcher launcher, boolean withDelay) {
