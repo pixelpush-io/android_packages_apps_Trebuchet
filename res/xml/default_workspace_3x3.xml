@@ -66,16 +66,25 @@
         launcher:y="-1" >
         <favorite launcher:uri="#Intent;action=android.settings.SETTINGS;end" />
     </resolve>
-
     <resolve
         launcher:screen="0"
         launcher:x="2"
-        launcher:y="-1" >
-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_CONTACTS;end" />
+	launcher:y="-1">
+	<favorite
+	        launcher:packageName="io.github.sspanak.tt9"
+		launcher:className="io.github.sspanak.tt9.preferences.PreferencesActivity"/>
     </resolve>
 
-    <!-- Middle row -->
+    <appwidget
+        launcher:packageName="com.android.deskclock"
+        launcher:className="com.android.alarmclock.DigitalAppWidgetProvider"
+        launcher:screen="0"
+        launcher:x="0"
+        launcher:y="-3"
+        launcher:spanX="3"
+        launcher:spanY="2" />
 
+    <!-- Middle row 
     <resolve
         launcher:screen="0"
         launcher:x="0"
@@ -99,9 +108,9 @@
 	<favorite
 	        launcher:packageName="app.organicmaps.web"
 		launcher:className="app.organicmaps.DownloadResourcesActivity"/>
-    </resolve>
+    </resolve>-->
 
-    <!-- Top row -->
+    <!-- Top row 
     <resolve
         launcher:screen="0"
         launcher:x="0"
@@ -110,15 +119,13 @@
                  launcher:packageName="org.lineageos.jelly"
 		 launcher:className="org.lineageos.jelly.MainActivity" />
     </resolve>
-
     <resolve
         launcher:screen="0"
         launcher:x="2"
-	launcher:y="-3">
-	<favorite
-	        launcher:packageName="io.github.sspanak.tt9"
-		launcher:className="io.github.sspanak.tt9.preferences.PreferencesActivity"/>
+        launcher:y="-3" >
+        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_CONTACTS;end" />
     </resolve>
+
 
     <resolve
         launcher:screen="0"
@@ -127,6 +134,6 @@
 	<favorite
 	        launcher:packageName="com.github.anrimian.musicplayer"
 		launcher:className="com.github.anrimian.musicplayer.ui.main.MainActivity"/>
-    </resolve>
+    </resolve>-->
 
 </favorites>
