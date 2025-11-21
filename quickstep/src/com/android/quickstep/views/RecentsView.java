@@ -4218,11 +4218,13 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         dismissAllTasks(null);
     }
 
-    private void dismissCurrentTask() {
+    private boolean dismissCurrentTask() {
         TaskView taskView = getNextPageTaskView();
         if (taskView != null) {
             dismissTask(taskView, true /*animateTaskView*/, true /*removeTask*/);
+            return true;
         }
+        return false;
     }
 
     @Override
@@ -4239,7 +4241,10 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 return snapToPageRelative(mIsRtl ? 1 : -1, true /* cycle */, DIRECTION_LEFT);
             case KeyEvent.KEYCODE_DPAD_UP:
-                return snapToPageRelative(1, false /* cycle */, DIRECTION_UP);
+                if (dismissCurrentTask()) {
+                    return true;
+                }
+                break;
             case KeyEvent.KEYCODE_DPAD_DOWN:
                 return snapToPageRelative(1, false /* cycle */, DIRECTION_DOWN);
             case KeyEvent.KEYCODE_DEL:
