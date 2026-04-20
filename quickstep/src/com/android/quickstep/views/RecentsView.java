@@ -117,6 +117,7 @@ import android.view.RemoteAnimationTarget;
 import android.view.View;
 import android.view.ViewDebug;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver.OnScrollChangedListener;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -2113,6 +2114,9 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         getTaskSize(mLastComputedTaskSize);
         mTaskWidth = mLastComputedTaskSize.width();
         mTaskHeight = mLastComputedTaskSize.height();
+        if (mActionsView != null) {
+            mActionsView.updateDimension(dp, mLastComputedTaskSize);
+        }
 
         setPadding(mLastComputedTaskSize.left - mInsets.left,
                 mLastComputedTaskSize.top - dp.overviewTaskThumbnailTopMarginPx - mInsets.top,
@@ -2453,6 +2457,22 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
 
     public void startHome() {
         startHome(mActivity.isStarted());
+    }
+
+    public void exitOverviewThenRun(Runnable postExitAction) {
+        if (shouldSwipeDownLaunchApp()) {
+            TaskView runningTaskView = getRunningTaskView();
+            if (runningTaskView != null) {
+                RunnableList launchCallbacks = runningTaskView.launchTasks();
+                if (launchCallbacks != null) {
+                    launchCallbacks.add(postExitAction);
+                    return;
+                }
+            }
+        }
+
+        startHome(false /* animated */);
+        post(postExitAction);
     }
 
     public void startHome(boolean animated) {
@@ -4232,13 +4252,20 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         if (isHandlingTouch() || event.getAction() != KeyEvent.ACTION_DOWN) {
             return super.dispatchKeyEvent(event);
         }
+        View focusedView = findFocus();
         switch (event.getKeyCode()) {
             case KeyEvent.KEYCODE_TAB:
                 return snapToPageRelative(event.isShiftPressed() ? -1 : 1, true /* cycle */,
                         DIRECTION_TAB);
             case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (mActionsView != null && mActionsView.isTopRowButton(focusedView)) {
+                    return mActionsView.focusNextTopRowButton(focusedView, true /* moveRight */);
+                }
                 return snapToPageRelative(mIsRtl ? -1 : 1, false, DIRECTION_RIGHT);
             case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (mActionsView != null && mActionsView.isTopRowButton(focusedView)) {
+                    return mActionsView.focusNextTopRowButton(focusedView, false /* moveRight */);
+                }
                 return snapToPageRelative(mIsRtl ? 1 : -1, true /* cycle */, DIRECTION_LEFT);
             case KeyEvent.KEYCODE_DPAD_UP:
                 if (dismissCurrentTask()) {
@@ -4246,7 +4273,16 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
                 }
                 break;
             case KeyEvent.KEYCODE_DPAD_DOWN:
-                return snapToPageRelative(1, false /* cycle */, DIRECTION_DOWN);
+                if (mActionsView != null
+                        && !mActionsView.isViewInActions(focusedView)
+                        && (isFocusInsideTaskView(focusedView)
+                        || focusedView == this
+                        || getFocusedTaskView() != null)
+                        && mActionsView.focusPrimaryActionButton()) {
+                    return true;
+                }
+                return snapToPageRelative(1, false /* cycle */, DIRECTION_DOWN)
+                        || (mActionsView != null && mActionsView.focusPrimaryActionButton());
             case KeyEvent.KEYCODE_DEL:
             case KeyEvent.KEYCODE_FORWARD_DEL:
                 dismissCurrentTask();
@@ -4259,6 +4295,34 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
                 }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    public boolean focusCurrentTaskFromOverviewActions() {
+        TaskView taskView = getFocusedTaskView();
+        if (taskView == null) {
+            taskView = getNextPageTaskView();
+        }
+        if (taskView == null) {
+            taskView = getCurrentPageTaskView();
+        }
+        return taskView != null && taskView.requestFocus();
+    }
+
+    private boolean isFocusInsideTaskView(@Nullable View focusedView) {
+        return findContainingTaskView(focusedView) != null;
+    }
+
+    @Nullable
+    private TaskView findContainingTaskView(@Nullable View view) {
+        View current = view;
+        while (current != null && current != this) {
+            if (current instanceof TaskView) {
+                return (TaskView) current;
+            }
+            ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return null;
     }
 
     @Override

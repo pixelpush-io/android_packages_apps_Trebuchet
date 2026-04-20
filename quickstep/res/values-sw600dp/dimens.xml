@@ -38,7 +38,7 @@
     <!-- The bottom margin above the bottom row of tasks in grid only overview -->
     <dimen name="overview_bottom_margin_grid_only">80dp</dimen>
     <!--  Overview actions  -->
-    <dimen name="overview_actions_top_margin">24dp</dimen>
+    <dimen name="overview_actions_top_margin">8dp</dimen>
 
     <!-- All Set page -->
     <dimen name="allset_page_margin_horizontal">120dp</dimen>

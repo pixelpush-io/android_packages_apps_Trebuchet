@@ -21,8 +21,10 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.FrameLayout;
 
@@ -42,7 +44,9 @@ import com.android.quickstep.util.LayoutUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -99,7 +103,11 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     public static final int FLAG_SINGLE_TASK = 1 << 0;
 
     private MultiValueAlpha mMultiValueAlpha;
+    private Button mScreenshotButton;
     private Button mSplitButton;
+    private Button mClearAllButton;
+    private Button mToggleDpiButton;
+    private int mLastFocusedTopRowActionId = View.NO_ID;
 
     @ActionsHiddenFlags
     private int mHiddenFlags;
@@ -135,13 +143,33 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        mMultiValueAlpha = new MultiValueAlpha(findViewById(R.id.action_buttons), NUM_ALPHAS);
+        View actionButtons = findViewById(R.id.action_buttons);
+        mMultiValueAlpha = new MultiValueAlpha(actionButtons, NUM_ALPHAS);
         mMultiValueAlpha.setUpdateVisibility(true);
 
-        findViewById(R.id.action_screenshot).setOnClickListener(this);
-        findViewById(R.id.action_clear_all).setOnClickListener(this);
+        mScreenshotButton = findViewById(R.id.action_screenshot);
+        mClearAllButton = findViewById(R.id.action_clear_all);
         mSplitButton = findViewById(R.id.action_split);
+        mToggleDpiButton = findViewById(R.id.action_toggle_dpi);
+        mScreenshotButton.setOnClickListener(this);
+        mClearAllButton.setOnClickListener(this);
         mSplitButton.setOnClickListener(this);
+        mToggleDpiButton.setOnClickListener(this);
+        View.OnFocusChangeListener topRowFocusListener = (view, hasFocus) -> {
+            if (hasFocus) {
+                mLastFocusedTopRowActionId = view.getId();
+            }
+        };
+        mScreenshotButton.setOnFocusChangeListener(topRowFocusListener);
+        mClearAllButton.setOnFocusChangeListener(topRowFocusListener);
+        mSplitButton.setOnFocusChangeListener(topRowFocusListener);
+        mLastFocusedTopRowActionId = R.id.action_screenshot;
+        actionButtons.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop,
+                oldRight, oldBottom) -> {
+            if ((bottom - top) != (oldBottom - oldTop)) {
+                updateVerticalMargin(DisplayController.getNavigationMode(getContext()));
+            }
+        });
     }
 
     /**
@@ -165,7 +193,171 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
             mCallbacks.onSplit();
         } else if (id == R.id.action_clear_all) {
             mCallbacks.onClearAllTasksRequested();
+        } else if (id == R.id.action_toggle_dpi) {
+            mCallbacks.onToggleDpi();
         }
+    }
+
+    public boolean focusPrimaryActionButton() {
+        return focusTopRowActionButton();
+    }
+
+    public boolean focusTopRowActionButton() {
+        Button preferredButton = findButtonById(mLastFocusedTopRowActionId);
+        if (requestFocusOnButton(preferredButton)) {
+            return true;
+        }
+        for (Button button : getTopRowButtons()) {
+            if (requestFocusOnButton(button)) {
+                return true;
+            }
+        }
+        return requestFocusOnButton(mToggleDpiButton);
+    }
+
+    public boolean focusToggleDpiButton() {
+        return requestFocusOnButton(mToggleDpiButton);
+    }
+
+    public boolean focusNextTopRowButton(@Nullable View currentFocus, boolean moveRight) {
+        List<Button> buttons = getTopRowButtons();
+        int focusedIndex = indexOfFocusedButton(buttons, currentFocus);
+        if (focusedIndex == -1) {
+            return false;
+        }
+        int nextIndex = focusedIndex + (moveRight ? 1 : -1);
+        if (nextIndex < 0 || nextIndex >= buttons.size()) {
+            return false;
+        }
+        return requestFocusOnButton(buttons.get(nextIndex));
+    }
+
+    public boolean isViewInActions(@Nullable View view) {
+        return isDescendant(view, this);
+    }
+
+    public boolean isTopRowButton(@Nullable View view) {
+        return isSameOrDescendant(view, mScreenshotButton)
+                || isSameOrDescendant(view, mSplitButton)
+                || isSameOrDescendant(view, mClearAllButton);
+    }
+
+    public boolean isToggleDpiButton(@Nullable View view) {
+        return isSameOrDescendant(view, mToggleDpiButton);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() != KeyEvent.ACTION_DOWN) {
+            return super.dispatchKeyEvent(event);
+        }
+
+        View focusedView = findFocus();
+        if (!isViewInActions(focusedView)) {
+            return super.dispatchKeyEvent(event);
+        }
+
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (isTopRowButton(focusedView)
+                        && focusNextTopRowButton(focusedView, false /* moveRight */)) {
+                    return true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (isTopRowButton(focusedView)
+                        && focusNextTopRowButton(focusedView, true /* moveRight */)) {
+                    return true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                if (isToggleDpiButton(focusedView) && focusTopRowActionButton()) {
+                    return true;
+                }
+                if (isTopRowButton(focusedView) && focusTaskView()) {
+                    return true;
+                }
+                break;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (isTopRowButton(focusedView) && focusToggleDpiButton()) {
+                    return true;
+                }
+                if (isToggleDpiButton(focusedView)) {
+                    return true;
+                }
+                break;
+            default:
+                break;
+        }
+
+        return super.dispatchKeyEvent(event);
+    }
+
+    private boolean requestFocusOnButton(@Nullable Button button) {
+        return button != null
+                && button.getVisibility() == VISIBLE
+                && button.isEnabled()
+                && button.requestFocus();
+    }
+
+    private boolean focusTaskView() {
+        View rootView = getRootView();
+        View overviewPanel = rootView.findViewById(R.id.overview_panel);
+        if (!(overviewPanel instanceof RecentsView)) {
+            return false;
+        }
+        return ((RecentsView<?, ?>) overviewPanel).focusCurrentTaskFromOverviewActions();
+    }
+
+    @Nullable
+    private Button findButtonById(int id) {
+        if (id == View.NO_ID) {
+            return null;
+        }
+        View view = findViewById(id);
+        return view instanceof Button ? (Button) view : null;
+    }
+
+    private List<Button> getTopRowButtons() {
+        ArrayList<Button> buttons = new ArrayList<>(3);
+        addIfFocusable(buttons, mScreenshotButton);
+        addIfFocusable(buttons, mSplitButton);
+        addIfFocusable(buttons, mClearAllButton);
+        return buttons;
+    }
+
+    private void addIfFocusable(List<Button> buttons, @Nullable Button button) {
+        if (button != null && button.getVisibility() == VISIBLE && button.isEnabled()) {
+            buttons.add(button);
+        }
+    }
+
+    private int indexOfFocusedButton(List<Button> buttons, @Nullable View currentFocus) {
+        for (int i = 0; i < buttons.size(); i++) {
+            if (isSameOrDescendant(currentFocus, buttons.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isSameOrDescendant(@Nullable View view, @Nullable View ancestor) {
+        return view == ancestor || isDescendant(view, ancestor);
+    }
+
+    private boolean isDescendant(@Nullable View view, @Nullable View ancestor) {
+        if (view == null || ancestor == null) {
+            return false;
+        }
+        View current = view;
+        while (current != null) {
+            if (current == ancestor) {
+                return true;
+            }
+            ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return false;
     }
 
     @Override
@@ -294,25 +486,27 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         if (mDp == null) {
             return;
         }
-        LayoutParams actionParams = (LayoutParams) findViewById(
-                R.id.action_buttons).getLayoutParams();
+        View actionButtons = findViewById(R.id.action_buttons);
+        LayoutParams actionParams = (LayoutParams) actionButtons.getLayoutParams();
+        int topMargin = 0;
+        int bottomMargin = getBottomMargin();
+        if (actionParams.topMargin == topMargin && actionParams.bottomMargin == bottomMargin) {
+            return;
+        }
         actionParams.setMargins(
-                actionParams.leftMargin, mDp.overviewActionsTopMarginPx,
-                actionParams.rightMargin, getBottomMargin());
+                actionParams.leftMargin, topMargin,
+                actionParams.rightMargin, bottomMargin);
+        actionButtons.setLayoutParams(actionParams);
     }
 
     private int getBottomMargin() {
         if (mDp == null) {
             return 0;
         }
-
-        if (mDp.isTablet && Flags.enableGridOnlyOverview()) {
-            return mDp.stashedTaskbarHeight;
-        }
-
-        // Align to bottom of task Rect.
-        return mDp.heightPx - mTaskSize.bottom - mDp.overviewActionsTopMarginPx
-                - mDp.overviewActionsHeight;
+        int bottomMargin = mDp.getOverviewActionsClaimedSpaceBelow();
+        int extraBottomShift = getResources().getDimensionPixelSize(
+                R.dimen.overview_actions_bottom_margin);
+        return Math.max(0, bottomMargin - extraBottomShift);
     }
 
     /**

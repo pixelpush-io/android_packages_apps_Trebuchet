@@ -42,6 +42,7 @@ import com.android.launcher3.popup.SystemShortcut;
 import com.android.launcher3.util.ResourceBasedOverride;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.Snackbar;
+import com.android.quickstep.util.DisplayDensityUtils;
 import com.android.quickstep.util.RecentsOrientedState;
 import com.android.quickstep.views.OverviewActionsView;
 import com.android.quickstep.views.RecentsView;
@@ -339,6 +340,18 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
             public void onClearAllTasksRequested() {
                 endLiveTileMode(TaskOverlay.this::clearAllTasks);
             }
+
+            @Override
+            public void onToggleDpi() {
+                RecentsView recentsView = mThumbnailView.getTaskView().getRecentsView();
+                if (recentsView == null) {
+                    DisplayDensityUtils.toggleDisplayDensity(mThumbnailView.getContext());
+                    return;
+                }
+
+                recentsView.exitOverviewThenRun(() ->
+                        DisplayDensityUtils.toggleDisplayDensity(mThumbnailView.getContext()));
+            }
         }
     }
 
@@ -354,5 +367,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
         void onSplit();
 
         void onClearAllTasksRequested();
+
+        void onToggleDpi();
     }
 }

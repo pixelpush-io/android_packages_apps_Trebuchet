@@ -62,6 +62,9 @@
     <!-- Text of the tip when user lands in all apps view for the first time, indicating where the tip toast points to is the predicted apps section. [CHAR_LIMIT=50] -->
     <string name="all_apps_prediction_tip">Your predicted apps</string>
 
+    <!-- Recents: Title of a button that toggles between the default and compact display density. [CHAR LIMIT=30] -->
+    <string name="action_toggle_dpi">Zoom out screen</string>
+
     <!-- Content description for a close button. [CHAR LIMIT=NONE] -->
     <string name="gesture_tutorial_close_button_content_description" translatable="false">Close</string>
 

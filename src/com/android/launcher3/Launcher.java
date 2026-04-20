@@ -592,21 +592,32 @@ public class Launcher extends StatefulActivity<LauncherState>
         }
 
        getStateManager().addStateListener(new StateManager.StateListener<LauncherState>() {
-            private boolean lastWasOverview = getStateManager().getState() != LauncherState.NORMAL;
+            private boolean lastHadClosableLauncherUi =
+                    shouldReportLauncherUiVisibleToSystemUi(getStateManager().getState());
 
             @Override
             public void onStateTransitionComplete(LauncherState finalState) {
-                Log.i("Dumbdroid", "End transition to " + finalState + ", last was" + lastWasOverview);
-                boolean isOverview = finalState != LauncherState.NORMAL;
+                boolean hasClosableLauncherUi =
+                        shouldReportLauncherUiVisibleToSystemUi(finalState);
+                Log.i("Dumbdroid", "End transition to " + finalState + ", last was "
+                        + lastHadClosableLauncherUi);
                 try {
-                    if (isOverview)
+                    if (hasClosableLauncherUi) {
                         com.android.quickstep.SystemUiProxy.INSTANCE.get(Launcher.this).onOverviewShown(false);
-                    else if (lastWasOverview)
+                    } else if (lastHadClosableLauncherUi) {
                         com.android.quickstep.SystemUiProxy.INSTANCE.get(Launcher.this).onOverviewHidden();
+                    }
                 } catch (Throwable ignore) { }
-                lastWasOverview = isOverview;
+                lastHadClosableLauncherUi = hasClosableLauncherUi;
             }
        });
+    }
+
+    private boolean shouldReportLauncherUiVisibleToSystemUi(LauncherState state) {
+        return state == ALL_APPS
+                || state == LauncherState.OVERVIEW
+                || state == LauncherState.OVERVIEW_MODAL_TASK
+                || state == LauncherState.OVERVIEW_SPLIT_SELECT;
     }
 
     protected ModelCallbacks createModelCallbacks() {
