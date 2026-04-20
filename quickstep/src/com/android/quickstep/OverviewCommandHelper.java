@@ -70,6 +70,7 @@ public class OverviewCommandHelper {
     private final TouchInteractionService mService;
     private final OverviewComponentObserver mOverviewComponentObserver;
     private final TaskAnimationManager mTaskAnimationManager;
+    private final SystemUiProxy mSystemUiProxy;
     private final ArrayList<CommandInfo> mPendingCommands = new ArrayList<>();
 
     /**
@@ -89,10 +90,12 @@ public class OverviewCommandHelper {
 
     public OverviewCommandHelper(TouchInteractionService service,
             OverviewComponentObserver observer,
-            TaskAnimationManager taskAnimationManager) {
+            TaskAnimationManager taskAnimationManager,
+            SystemUiProxy systemUiProxy) {
         mService = service;
         mOverviewComponentObserver = observer;
         mTaskAnimationManager = taskAnimationManager;
+        mSystemUiProxy = systemUiProxy;
     }
 
     /**
@@ -230,7 +233,11 @@ public class OverviewCommandHelper {
                 case TYPE_HOME:
                     ActiveGestureLog.INSTANCE.addLog(
                             "OverviewCommandHelper.executeCommand(TYPE_HOME)");
-                    mService.startActivity(mOverviewComponentObserver.getHomeIntent());
+                    OverviewComponentObserver.startHomeIntentSafely(
+                            mService,
+                            mOverviewComponentObserver.getHomeIntent(),
+                            null /* options */,
+                            "OverviewCommandHelper.executeCommand(TYPE_HOME)");
                     return true;
                 case TYPE_SHOW:
                     // When Recents is not currently visible, the command's type is TYPE_SHOW
